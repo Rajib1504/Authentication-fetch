@@ -1,15 +1,21 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, Navigate } from "react-router";
 import toast from "react-hot-toast";
 import Spinner from "../components/Spinner";
 import PasswordInput from "../components/PasswordInput";
+import { useAuth } from "../context/AuthContext";
 
 const Register = () => {
   const [formData, setFormData] = useState();
   console.log(formData);
 
   const [loading, setLoading] = useState(false);
-  // const [data, setData] = useState(null);
+  const { token } = useAuth();
+
+  // Redirect to home if already logged in
+  if (token) {
+    return <Navigate to="/" />;
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -37,7 +43,6 @@ const Register = () => {
       }
       
       toast.success("Registration successful! Redirecting to login...");
-      setFormData(data);
       event.target.reset();
       // Redirect to login after 2 seconds
       setTimeout(() => {

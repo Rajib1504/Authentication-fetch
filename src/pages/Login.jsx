@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, Navigate } from "react-router";
 import toast from "react-hot-toast";
 import PasswordInput from "../components/PasswordInput";
 import Spinner from "../components/Spinner";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,12 @@ const Login = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const { login, token } = useAuth();
+
+  // Redirect to home if already logged in
+  if (token) {
+    return <Navigate to="/" />;
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,9 +50,14 @@ const Login = () => {
         return;
       }
       
-      toast.success("Login successful!");
-      setFormData(data);
-      e.target.reset();
+      toast.success("Login successful! Redirecting...");
+      const authToken = data.data.accessToken;
+      const userData = data.data.user;
+      login(authToken, userData);
+      // Redirect to home
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
     } catch (error) {
       toast.error("Login failed: " + error.message);
       console.error("Login failed:", error);
