@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import toast from "react-hot-toast";
 import Spinner from "../components/Spinner";
+import PasswordInput from "../components/PasswordInput";
 
 const Register = () => {
   const [formData, setFormData] = useState();
@@ -99,22 +100,11 @@ const Register = () => {
             </div>
 
             {/* Password Field */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-300 mb-2"
-              >
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                required
-                placeholder="••••••••"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
-              />
-            </div>
+            <PasswordInput
+              id="password"
+              name="password"
+              required
+            />
 
             {/* Role Field */}
             <div>
