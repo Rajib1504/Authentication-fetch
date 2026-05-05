@@ -1,58 +1,56 @@
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Link, Navigate } from "react-router";
 import toast from "react-hot-toast";
 import Spinner from "../components/Spinner";
-import PasswordInput from "../components/PasswordInput";
-import { useAuth } from "../context/AuthContext";
+import authService from "../services/authService";
+import tokenStore from "../services/tokenStore";
 
 const Register = () => {
-  const [formData, setFormData] = useState();
-  console.log(formData);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm({
+    defaultValues: {
+      email: "",
+      username: "",
+      password: "",
+      role: "USER",
+    },
+    mode: "onBlur",
+  });
 
-  const [loading, setLoading] = useState(false);
-  const { token } = useAuth();
+  const accessToken = tokenStore.getAccessToken();
 
   // Redirect to home if already logged in
-  if (token) {
+  if (accessToken) {
     return <Navigate to="/" />;
   }
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
+  const onSubmit = async (data) => {
     try {
-      const formData = {
-        email: event.target.email.value,
-        username: event.target.username.value,
-        password: event.target.password.value,
-        role: event.target.role.value,
-      };
-      const response = await fetch(
-        "https://api.freeapi.app/api/v1/users/register",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        },
-      );
-      const data = await response.json();
-      
-      if (!response.ok) {
-        toast.error(data.message || "Registration failed");
-        return;
-      }
-      
+      console.log(data);
+      const response = await authService.register({
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+      });
+      console.log("Registration successful:", response);
       toast.success("Registration successful! Redirecting to login...");
-      event.target.reset();
+      reset();
       // Redirect to login after 2 seconds
       setTimeout(() => {
         window.location.href = "/login";
       }, 2000);
     } catch (error) {
-      toast.error("Registration failed: " + error.message);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error.message ||
+        "Registration failed";
+      toast.error(errorMessage);
       console.error("Registration failed:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -67,7 +65,7 @@ const Register = () => {
 
         {/* Form Card */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-2xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email Field */}
             <div>
               <label
@@ -79,11 +77,25 @@ const Register = () => {
               <input
                 type="email"
                 id="email"
-                name="email"
-                required
                 placeholder="user@domain.com"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address",
+                  },
+                })}
+                className={`w-full text-white px-4 py-2 bg-gray-700 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                  errors.email
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-600 focus:ring-yellow-500"
+                }`}
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Username Field */}
@@ -97,19 +109,62 @@ const Register = () => {
               <input
                 type="text"
                 id="username"
-                name="username"
-                required
                 placeholder="doejohn"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
+                {...register("username", {
+                  required: "Username is required",
+                  minLength: {
+                    value: 3,
+                    message: "Username must be at least 3 characters",
+                  },
+                  maxLength: {
+                    value: 30,
+                    message: "Username must not exceed 30 characters",
+                  },
+                })}
+                className={`w-full px-4 text-white py-2 bg-gray-700 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                  errors.username
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-600 focus:ring-yellow-500"
+                }`}
               />
+              {errors.username && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.username.message}
+                </p>
+              )}
             </div>
 
             {/* Password Field */}
-            <PasswordInput
-              id="password"
-              name="password"
-              required
-            />
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                placeholder="••••••••"
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters",
+                  },
+                })}
+                className={`w-full text-white px-4 py-2 bg-gray-700 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                  errors.password
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-600 focus:ring-yellow-500"
+                }`}
+              />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
 
             {/* Role Field */}
             <div>
@@ -121,7 +176,7 @@ const Register = () => {
               </label>
               <select
                 id="role"
-                name="role"
+                {...register("role")}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
               >
                 <option value="USER">User</option>
@@ -132,10 +187,10 @@ const Register = () => {
             {/* Submit Button with Spinner */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
               className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-700 disabled:cursor-not-allowed text-gray-900 font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
             >
-              {loading ? (
+              {isSubmitting ? (
                 <>
                   <Spinner />
                   Registering...

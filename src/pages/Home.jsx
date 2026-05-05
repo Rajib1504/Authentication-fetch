@@ -1,26 +1,15 @@
 
-import { useAuth } from "../context/AuthContext";
 import { Navigate } from "react-router";
 import Navbar from "../components/Navbar";
-import Spinner from "../components/Spinner";
+import tokenStore from "../services/tokenStore";
 
 const Home = () => {
-  const { user, loading, token } = useAuth();
+  const accessToken = tokenStore.getAccessToken();
+  const user = tokenStore.getUser();
 
   // Redirect to login if not authenticated
-  if (!token && !loading) {
+  if (!accessToken) {
     return <Navigate to="/login" />;
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Spinner />
-          <p className="text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
   }
 
   return (

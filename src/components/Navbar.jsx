@@ -1,8 +1,23 @@
-import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router";
+import toast from "react-hot-toast";
+import authService from "../services/authService";
+import tokenStore from "../services/tokenStore";
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const user = tokenStore.getUser();
+
+  const handleLogout = async () => {
+    try {
+      await authService.logOut();
+      toast.success("Logged out successfully");
+      window.location.href = "/login";
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message || error.message || "Logout failed";
+      toast.error(errorMessage);
+      console.error("Logout error:", error);
+    }
+  };
 
   return (
     <nav className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50 shadow-lg">
@@ -26,7 +41,7 @@ const Navbar = () => {
                   </p>
                 </div>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
                 >
                   Logout

@@ -1,68 +1,49 @@
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Link, Navigate } from "react-router";
 import toast from "react-hot-toast";
-import PasswordInput from "../components/PasswordInput";
 import Spinner from "../components/Spinner";
-import { useAuth } from "../context/AuthContext";
+import authService from "../services/authService";
+import tokenStore from "../services/tokenStore";
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    mode: "onBlur",
   });
 
-  const [loading, setLoading] = useState(false);
-  const { login, token } = useAuth();
+  const accessToken = tokenStore.getAccessToken();
 
   // Redirect to home if already logged in
-  if (token) {
+  if (accessToken) {
     return <Navigate to="/" />;
   }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const formData = {
-      username: e.target.username.value,
-      password: e.target.password.value,
-    };
+  const onSubmit = async (data) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        "https://api.freeapi.app/api/v1/users/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        },
-      );
-      const data = await response.json();
-      
-      if (!response.ok) {
-        toast.error(data.message || "Login failed");
-        return;
-      }
-      
+      console.log(data);
+      const response = await authService.login({
+        email: data.email,
+        password: data.password,
+      });
+      console.log("Login successful:", response);
+
       toast.success("Login successful! Redirecting...");
-      const authToken = data.data.accessToken;
-      const userData = data.data.user;
-      login(authToken, userData);
       // Redirect to home
       setTimeout(() => {
         window.location.href = "/";
       }, 1500);
     } catch (error) {
-      toast.error("Login failed: " + error.message);
+      const errorMessage =
+        error?.response?.data?.message || error.message || "Login failed";
+      toast.error(errorMessage);
       console.error("Login failed:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -77,35 +58,70 @@ const Login = () => {
 
         {/* Form Card */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-2xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username Field */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Email Field */}
             <div>
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="block text-sm font-medium text-gray-300 mb-2"
               >
-                Username
+                Email Address
               </label>
               <input
-                type="text"
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                required
-                placeholder="doejohn"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
+                type="email"
+                id="email"
+                placeholder="user@domain.com"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address",
+                  },
+                })}
+                className={`w-full text-white px-4 py-2 bg-gray-700 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                  errors.email
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-600 focus:ring-yellow-500"
+                }`}
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Password Field */}
-            <PasswordInput
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                placeholder="••••••••"
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters",
+                  },
+                })}
+                className={`w-full text-white px-4 py-2 bg-gray-700 border rounded-lg focus:ring-2 focus:border-transparent outline-none transition ${
+                  errors.password
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-600 focus:ring-yellow-500"
+                }`}
+              />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
 
             {/* Remember me & Forgot password */}
             <div className="flex items-center justify-between">
@@ -127,10 +143,10 @@ const Login = () => {
             {/* Submit Button with Spinner */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
               className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-700 disabled:cursor-not-allowed text-gray-900 font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
             >
-              {loading ? (
+              {isSubmitting ? (
                 <>
                   <Spinner />
                   Signing in...
